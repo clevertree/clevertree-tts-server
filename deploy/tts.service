@@ -1,0 +1,24 @@
+[Unit]
+Description=Clevertree TTS Server (Piper)
+After=network.target
+
+[Service]
+Type=simple
+User=tts
+Group=tts
+WorkingDirectory=/opt/clevertree-tts-server
+ExecStart=/usr/bin/node dist/index.js
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+EnvironmentFile=/opt/clevertree-tts-server/.env
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/clevertree-tts-server
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
