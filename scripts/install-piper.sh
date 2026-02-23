@@ -33,10 +33,9 @@ download_voice() {
     local name="$1"
     local quality="$2"
     local filename="${name}-${quality}.onnx"
-    local lang_prefix="${name%%[-_]*}_${name#*[-_]}"
 
     # Construct the HuggingFace URL
-    # Format: https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/<lang>/<region>/<name>/<quality>/<filename>
+    # Format: https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/<lang>/<region>/<speaker>/<quality>/<filename>
     local lang="${name%%_*}"          # e.g. en
     local rest="${name#*_}"           # e.g. US-lessac
     local region="${rest%%-*}"        # e.g. US
@@ -45,17 +44,51 @@ download_voice() {
     local base_url="https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/${lang}/${lang}_${region}/${speaker}/${quality}"
 
     if [ ! -f "${VOICES_DIR}/${filename}" ]; then
-        echo "==> Downloading voice: ${filename}..."
-        curl -fSL "${base_url}/${filename}" -o "${VOICES_DIR}/${filename}"
-        curl -fSL "${base_url}/${filename}.json" -o "${VOICES_DIR}/${filename}.json"
-        echo "==> Voice ${filename} downloaded."
+        echo -n "==> Downloading voice: ${filename}... "
+        if curl -fsSL "${base_url}/${filename}" -o "${VOICES_DIR}/${filename}" 2>/dev/null; then
+            curl -fsSL "${base_url}/${filename}.json" -o "${VOICES_DIR}/${filename}.json" 2>/dev/null || true
+            echo "OK ($(du -h "${VOICES_DIR}/${filename}" | cut -f1))"
+        else
+            echo "NOT FOUND"
+            rm -f "${VOICES_DIR}/${filename}"
+        fi
     else
         echo "==> Voice ${filename} already exists, skipping."
     fi
 }
 
+# ── en_US voices (medium where available, fallback to best available) ──
 download_voice "en_US-lessac" "medium"
 download_voice "en_US-amy" "medium"
+download_voice "en_US-arctic" "medium"
+download_voice "en_US-bryce" "medium"
+download_voice "en_US-danny" "low"           # no medium available
+download_voice "en_US-hfc_female" "medium"
+download_voice "en_US-hfc_male" "medium"
+download_voice "en_US-joe" "medium"
+download_voice "en_US-john" "medium"
+download_voice "en_US-kathleen" "low"        # no medium available
+download_voice "en_US-kristin" "medium"
+download_voice "en_US-kusal" "medium"
+download_voice "en_US-l2arctic" "medium"
+download_voice "en_US-libritts" "high"       # no medium available
+download_voice "en_US-libritts_r" "medium"
+download_voice "en_US-ljspeech" "medium"
+download_voice "en_US-norman" "medium"
+download_voice "en_US-reza_ibrahim" "medium"
+download_voice "en_US-ryan" "medium"
+download_voice "en_US-sam" "medium"
+
+# ── en_GB voices ──
+download_voice "en_GB-alan" "medium"
+download_voice "en_GB-alba" "medium"
+download_voice "en_GB-aru" "medium"
+download_voice "en_GB-cori" "medium"
+download_voice "en_GB-jenny_dioco" "medium"
+download_voice "en_GB-northern_english_male" "medium"
+download_voice "en_GB-semaine" "medium"
+download_voice "en_GB-southern_english_female" "low"  # no medium available
+download_voice "en_GB-vctk" "medium"
 
 echo "==> Piper installation complete."
 echo "   Binary: ${PIPER_DIR}/piper"
