@@ -39,7 +39,14 @@ export function synthesize(
             reject(new Error(`Piper spawn failed: ${err.message}`))
         })
 
+        // Kill the process if it produces no output within 25 seconds
+        const timeout = setTimeout(() => {
+            child.kill('SIGKILL')
+            reject(new Error(`Piper synthesis timed out after 25s (text length: ${text.length})`))
+        }, 25_000)
+
         child.on('close', (code) => {
+            clearTimeout(timeout)
             if (code !== 0) {
                 const msg = Buffer.concat(stderr).toString('utf-8') || 'Unknown Piper error'
                 reject(new Error(`Piper exited with code ${code}: ${msg}`))

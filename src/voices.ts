@@ -56,7 +56,7 @@ export function getVoices(): VoiceConfig[] {
 }
 
 export function getDefaultVoiceId(): string | null {
-    return 'en_GB-cori-medium'
+    return 'en_GB-alba-medium'
 }
 
 export function resolveVoice(
