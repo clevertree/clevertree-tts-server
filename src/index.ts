@@ -3,6 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import { getVoices, getDefaultVoiceId, resolveVoice } from './voices'
 import { synthesize } from './tts'
+import { cacheKey, getCached, putCache } from './cache'
 
 const PORT = parseInt(process.env.PORT ?? '3100', 10)
 const SECRET = process.env.CLEVERTREE_TTS_SECRET ?? ''
@@ -102,13 +103,32 @@ app.post('/tts', requireAuth, async (req, res) => {
         }
 
         const safeRate = typeof rate === 'number' && rate > 0 ? rate : 1.0
+        const trimmedText = text.trim()
 
-        const result = await synthesize(text.trim(), voice, safeRate)
+        // ── Cache lookup ────────────────────────────────────────────
+        const key = cacheKey(trimmedText, voice.id, safeRate)
+        const cached = getCached(key)
+        if (cached) {
+            console.log(`[CACHE HIT] key=${key.slice(0, 12)}… voice=${voice.id} len=${trimmedText.length}`)
+            res.set({
+                'Content-Type': 'audio/wav',
+                'Cache-Control': 'public, max-age=86400',
+                'Content-Length': String(cached.length),
+                'X-Cache': 'HIT',
+            })
+            res.send(cached)
+            return
+        }
+
+        // ── Cache miss — synthesize ─────────────────────────────────
+        const result = await synthesize(trimmedText, voice, safeRate)
+        putCache(key, result.audio)
 
         res.set({
             'Content-Type': result.contentType,
-            'Cache-Control': 'no-store',
+            'Cache-Control': 'public, max-age=86400',
             'Content-Length': String(result.audio.length),
+            'X-Cache': 'MISS',
         })
         res.send(result.audio)
     } catch (err) {
